@@ -24,13 +24,12 @@ class CIFAR10Dataset(nn.Module):
         return len(self.cifar10)
 
     def __getitem__(self, index):
-        z = torch.randn(100)
         image, _ = self.cifar10[index]
 
         if self.transform: 
             image = self.transform(image)
 
-        return image, z
+        return image
         
 
 class CIFAR10DataModule(pl.LightningDataModule): 

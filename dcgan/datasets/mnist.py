@@ -26,13 +26,12 @@ class MNISTDataset(nn.Module):
         return len(self.mnist)
 
     def __getitem__(self, index):
-        z = torch.randn(100)
         image, _ = self.mnist[index]
 
         if self.transform: 
             image = self.transform(image)
 
-        return image, z
+        return image
         
 
 class MNISTDataModule(pl.LightningDataModule): 
