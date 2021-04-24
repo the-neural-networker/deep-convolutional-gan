@@ -8,20 +8,6 @@ import pytorch_lightning as pl
 from torchvision.transforms.transforms import Resize 
 
 
-class CIFAR10Dataset(nn.Module): 
-
-    def __init__(self, data_dir: str="./", transform=None, train=True):
-        super().__init__()
-        self.cifar10 = CIFAR10(data_dir, train=train, download=True, transform=transform)
-
-    def __len__(self):
-        return len(self.cifar10)
-
-    def __getitem__(self, index):
-        image, _ = self.cifar10[index]
-        return image
-        
-
 class CIFAR10DataModule(pl.LightningDataModule): 
 
     def __init__(self, data_dir: str = "./", image_size: int=64, batch_size: int=128, num_workers=4):
@@ -40,8 +26,8 @@ class CIFAR10DataModule(pl.LightningDataModule):
         return "cifar10"
 
     def setup(self, stage=None):
-        self.test_set = CIFAR10Dataset(self.data_dir, transform=self.transform, train=False)
-        full_dataset = CIFAR10Dataset(self.data_dir, transform=self.transform, train=True)
+        self.test_set = CIFAR10(self.data_dir, download=True, transform=self.transform, train=False)
+        full_dataset = CIFAR10(self.data_dir, download=True, transform=self.transform, train=True)
         self.train_set, self.val_set = random_split(full_dataset, [40000, 10000])
 
     def train_dataloader(self):
@@ -55,11 +41,6 @@ class CIFAR10DataModule(pl.LightningDataModule):
 
 
 if __name__ == "__main__":
-    dataset = CIFAR10Dataset()
-    image, z = dataset[0]
-    # check lengths
-    print(image.shape, z.shape) 
-
     dm = CIFAR10DataModule()
     dm.setup() 
 

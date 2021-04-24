@@ -7,21 +7,7 @@ from torch.utils.data.dataset import random_split
 import pytorch_lightning as pl
 from torchvision.transforms.transforms import Resize 
 
-
-class MNISTDataset(nn.Module): 
-
-    def __init__(self, data_dir: str="./", transform=None, train=True):
-        super().__init__()
-        self.mnist = MNIST(data_dir, train=train, download=True, transform=transform)
-
-    def __len__(self):
-        return len(self.mnist)
-
-    def __getitem__(self, index):
-        image, _ = self.mnist[index]
-        return image
         
-
 class MNISTDataModule(pl.LightningDataModule): 
 
     def __init__(self, data_dir: str = "./", image_size: int=64, batch_size: int=128, num_workers=4):
@@ -39,8 +25,8 @@ class MNISTDataModule(pl.LightningDataModule):
         return "mnist"
 
     def setup(self, stage=None):
-        self.test_set = MNISTDataset(self.data_dir, transform=self.transform, train=False)
-        full_dataset = MNISTDataset(self.data_dir, transform=self.transform, train=True)
+        self.test_set = MNIST(self.data_dir, download=True, transform=self.transform, train=False)
+        full_dataset = MNIST(self.data_dir, download=True, transform=self.transform, train=True)
         self.train_set, self.val_set = random_split(full_dataset, [50000, 10000])
 
     def train_dataloader(self):
@@ -54,11 +40,6 @@ class MNISTDataModule(pl.LightningDataModule):
 
 
 if __name__ == "__main__":
-    dataset = MNISTDataset()
-    image, z = dataset[0]
-    # check shapes
-    print(image.shape, z.shape) 
-
     dm = MNISTDataModule()
     dm.setup() 
 
