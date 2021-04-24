@@ -10,7 +10,7 @@ import pytorch_lightning as pl
 
 class Generator(nn.Module):
 
-    def __init__(self, z_dim=100, z_filter_shape=4, out_channels=3):
+    def __init__(self, z_dim=100, z_filter_shape=2, out_channels=3):
         super(Generator, self).__init__()
         self.z_filter_shape = z_filter_shape
         self.fc = nn.Linear(z_dim, z_filter_shape * z_filter_shape * 1024) 
@@ -42,7 +42,7 @@ class Generator(nn.Module):
 
 class Discriminator(nn.Module): 
 
-    def __init__(self, z_filter_shape=4, in_channels=3):
+    def __init__(self, z_filter_shape=2, in_channels=3):
         super(Discriminator, self).__init__() 
         self.z_filter_shape = z_filter_shape
         self.down1 = nn.Conv2d(in_channels, 128, kernel_size=5, stride=2, padding=2)
@@ -88,7 +88,7 @@ class DCGAN(pl.LightningModule):
         return image 
 
     def training_step(self, batch, batch_idx, optimizer_idx):
-        x = batch 
+        x, _ = batch 
         batch_size = len(x)
         z = self._sample_z(batch_size, self.hparams.z_dim)
 
@@ -104,14 +104,13 @@ class DCGAN(pl.LightningModule):
             y = self.discriminator(x) 
             y_hat = self.discriminator(x_hat) 
 
-            print("x prob: ", y, '\n', "g(z) prob: ", y_hat)
             loss = self.discriminator_loss(y, y_hat)
             self.log("train_disc_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
 
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x = batch 
+        x, _ = batch 
         batch_size = len(x)
         z = self._sample_z(batch_size, self.hparams.z_dim)
 
@@ -132,7 +131,7 @@ class DCGAN(pl.LightningModule):
         return loss
 
     def test_step(self, batch, batch_idx):
-        x = batch 
+        x, _ = batch 
         batch_size = len(x)
         z = self._sample_z(batch_size, self.hparams.z_dim)
 
@@ -153,11 +152,9 @@ class DCGAN(pl.LightningModule):
         return loss
 
     def generator_loss(self, y_hat): 
-        # loss = -torch.log(y_hat) 
         return F.binary_cross_entropy(y_hat, torch.ones_like(y_hat))
     
     def discriminator_loss(self, y, y_hat):
-        # loss = (torch.log(y) + torch.log(1 - y_hat))
         return F.binary_cross_entropy(y, torch.ones_like(y)) + F.binary_cross_entropy(y_hat, torch.zeros_like(y_hat))
 
     def configure_optimizers(self):
