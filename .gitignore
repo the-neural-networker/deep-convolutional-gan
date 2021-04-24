@@ -135,3 +135,6 @@ cifar-10-python.tar.gz
 
 # vscode 
 .vscode
+
+# lightning logs 
+lightning_logs/
