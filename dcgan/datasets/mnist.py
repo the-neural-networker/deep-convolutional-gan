@@ -12,40 +12,31 @@ class MNISTDataset(nn.Module):
 
     def __init__(self, data_dir: str="./", transform=None, train=True):
         super().__init__()
-        self.mnist = MNIST(data_dir, train=train, download=True)
-        if transform is None: 
-            self.transform = transforms.Compose([
-                transforms.Resize(32),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=(0.5,), std=(0.5,))
-            ])
-        else:
-            self.transform = transform 
+        self.mnist = MNIST(data_dir, train=train, download=True, transform=transform)
 
     def __len__(self):
         return len(self.mnist)
 
     def __getitem__(self, index):
         image, _ = self.mnist[index]
-
-        if self.transform: 
-            image = self.transform(image)
-
         return image
         
 
 class MNISTDataModule(pl.LightningDataModule): 
 
-    def __init__(self, data_dir: str = "./", batch_size: int=128, num_workers=4):
+    def __init__(self, data_dir: str = "./", image_size: int=64, batch_size: int=128, num_workers=4):
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.transform = transforms.Compose([
-                transforms.Resize(32),
+                transforms.Resize(image_size),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=(0.5,), std=(0.5,))
             ])
+
+    def __str__(self):
+        return "mnist"
 
     def setup(self, stage=None):
         self.test_set = MNISTDataset(self.data_dir, transform=self.transform, train=False)

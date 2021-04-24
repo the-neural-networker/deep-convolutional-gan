@@ -4,45 +4,40 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import CIFAR10
 from torchvision import transforms
 from torch.utils.data.dataset import random_split 
-import pytorch_lightning as pl 
+import pytorch_lightning as pl
+from torchvision.transforms.transforms import Resize 
 
 
 class CIFAR10Dataset(nn.Module): 
 
     def __init__(self, data_dir: str="./", transform=None, train=True):
         super().__init__()
-        self.cifar10 = CIFAR10(data_dir, train=train, download=True)
-        if transform is None: 
-            self.transform = transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
-            ])
-        else:
-            self.transform = transform 
+        self.cifar10 = CIFAR10(data_dir, train=train, download=True, transform=transform)
 
     def __len__(self):
         return len(self.cifar10)
 
     def __getitem__(self, index):
         image, _ = self.cifar10[index]
-
-        if self.transform: 
-            image = self.transform(image)
-
         return image
         
 
 class CIFAR10DataModule(pl.LightningDataModule): 
 
-    def __init__(self, data_dir: str = "./", batch_size: int=128, num_workers=4):
+    def __init__(self, data_dir: str = "./", image_size: int=64, batch_size: int=128, num_workers=4):
         super().__init__()
         self.data_dir = data_dir
+        self.image_size = image_size
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.transform = transforms.Compose([
+                transforms.Resize(image_size),
                 transforms.ToTensor(),
-                transforms.Normalize(mean=(0.5,), std=(0.5,))
+                transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
             ])
+
+    def __str__(self):
+        return "cifar10"
 
     def setup(self, stage=None):
         self.test_set = CIFAR10Dataset(self.data_dir, transform=self.transform, train=False)
