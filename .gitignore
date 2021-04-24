@@ -127,3 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# datasets 
+MNIST
+cifar-10-batches-py 
+cifar-10-python.tar.gz
+
+# vscode 
+.vscode
