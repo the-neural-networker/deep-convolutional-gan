@@ -49,7 +49,6 @@ def show_batch(dm, model, z_dim):
         figure.add_subplot(rows, cols, i)
         plt.axis("off")
         image = images[i-1].detach().to("cpu").numpy()
-        # channels, height, width = image.shape
         if image.shape[-1] == 1:
             plt.imshow(image, "gray")
         else:
