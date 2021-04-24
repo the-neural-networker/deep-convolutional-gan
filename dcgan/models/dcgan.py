@@ -10,10 +10,10 @@ import pytorch_lightning as pl
 
 class Generator(nn.Module):
 
-    def __init__(self, z_filter_shape=4, out_channels=3):
+    def __init__(self, z_dim=100, z_filter_shape=4, out_channels=3):
         super(Generator, self).__init__()
         self.z_filter_shape = z_filter_shape
-        self.fc = nn.Linear(100, z_filter_shape * z_filter_shape * 1024) 
+        self.fc = nn.Linear(z_dim, z_filter_shape * z_filter_shape * 1024) 
         self.up1 = nn.ConvTranspose2d(1024, 512, kernel_size=5, stride=2, padding=2, output_padding=1)
         self.bn1 = nn.BatchNorm2d(512)
         self.up2 = nn.ConvTranspose2d(512, 256, kernel_size=5, stride=2, padding=2, output_padding=1)
@@ -37,6 +37,7 @@ class Generator(nn.Module):
             nn.init.normal_(m.weight, mean=0.0, std=0.02)
         if type(m) == nn.BatchNorm2d:
             nn.init.normal_(m.weight, mean=0.0, std=0.02)
+            nn.init.zeros_(m.bias)
 
 
 class Discriminator(nn.Module): 
@@ -64,7 +65,7 @@ class Discriminator(nn.Module):
         return x
 
     def _init_weights(self, m):
-        if type(m) == nn.ConvTranspose2d:
+        if type(m) == nn.Conv2d:
             nn.init.normal_(m.weight, mean=0.0, std=0.02)
         if type(m) == nn.BatchNorm2d:
             nn.init.normal_(m.weight, mean=1.0, std=0.02)
@@ -76,10 +77,10 @@ class DCGAN(pl.LightningModule):
     Deep Convolutional Generative Adversarial Network.
     """
 
-    def __init__(self, z_filter_shape=4, n_channels=3, generator_lr=2e-4, discriminator_lr=2e-4, beta1=0.5):
+    def __init__(self, z_dim=100, z_filter_shape=4, n_channels=3, generator_lr=2e-4, discriminator_lr=2e-4, beta1=0.5):
         super(DCGAN, self).__init__()
         self.save_hyperparameters()
-        self.generator = Generator(self.hparams.z_filter_shape, self.hparams.n_channels)
+        self.generator = Generator(self.hparams.z_dim, self.hparams.z_filter_shape, self.hparams.n_channels)
         self.discriminator = Discriminator(self.hparams.z_filter_shape, self.hparams.n_channels) 
 
     def forward(self, z):
@@ -87,64 +88,90 @@ class DCGAN(pl.LightningModule):
         return image 
 
     def training_step(self, batch, batch_idx, optimizer_idx):
-        x, z = batch 
+        x = batch 
+        batch_size = len(x)
+        z = self._sample_z(batch_size, self.hparams.z_dim)
+
         if optimizer_idx == 0:
-            x_hat = self.generator(z) 
+            x_hat = self(z) 
             y_hat = self.discriminator(x_hat) 
+
             loss = self.generator_loss(y_hat)
-            self.log("gen_loss", loss, on_epoch=False, prog_bar=True)
+            self.log("train_gen_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
+
         if optimizer_idx == 1:
-            x_hat = self.generator(z) 
+            x_hat = self(z) 
             y = self.discriminator(x) 
             y_hat = self.discriminator(x_hat) 
+
+            print("x prob: ", y, '\n', "g(z) prob: ", y_hat)
             loss = self.discriminator_loss(y, y_hat)
-            self.log("disc_loss", loss, on_epoch=False, prog_bar=True)
+            self.log("train_disc_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
+
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, z = batch 
-        x_hat = self.generator(z) 
+        x = batch 
+        batch_size = len(x)
+        z = self._sample_z(batch_size, self.hparams.z_dim)
+
+        x_hat = self(z) 
         y = self.discriminator(x) 
         y_hat = self.discriminator(x_hat) 
-        gen_loss = self.generator_loss(y_hat)
-        self.log("val_gen_loss", gen_loss, on_epoch=True, prog_bar=True)
-        disc_loss = self.discriminator_loss(y, y_hat)
-        self.log("val_disc_loss", disc_loss, on_epoch=True, prog_bar=True)
-        return gen_loss, disc_loss
 
-    def testing_step(self, batch, batch_idx):
-        x, z = batch 
-        x_hat = self.generator(z) 
+        gen_loss = self.generator_loss(y_hat)
+        self.log("val_gen_loss", gen_loss, on_step=True, on_epoch=True, prog_bar=True)
+        disc_loss = self.discriminator_loss(y, y_hat)
+        self.log("val_disc_loss", disc_loss, on_step=True, on_epoch=True, prog_bar=True)
+
+        loss = {
+            "gen_loss": gen_loss, 
+            "disc_loss": disc_loss
+        }
+
+        return loss
+
+    def test_step(self, batch, batch_idx):
+        x = batch 
+        batch_size = len(x)
+        z = self._sample_z(batch_size, self.hparams.z_dim)
+
+        x_hat = self(z) 
         y = self.discriminator(x) 
         y_hat = self.discriminator(x_hat) 
-        gen_loss = self.generator_loss(y_hat)
-        self.log("loss/generator", gen_loss, on_epoch=True, prog_bar=True)
-        disc_loss = self.discriminator_loss(y, y_hat)
-        self.log("test_disc_loss", disc_loss, on_epoch=True, prog_bar=True)
-        return gen_loss, disc_loss
 
-    def generator_loss(self, y_hat, reduction="mean"): 
-        loss = -torch.log(y_hat) 
-        if reduction == "mean":
-            return loss.mean() 
-        else:
-            return loss.sum() 
+        gen_loss = self.generator_loss(y_hat)
+        self.log("test_gen_loss", gen_loss, on_step=True, on_epoch=True, prog_bar=True)
+        disc_loss = self.discriminator_loss(y, y_hat)
+        self.log("test_disc_loss", disc_loss, on_step=True, on_epoch=True, prog_bar=True)
+
+        loss = {
+            "gen_loss": gen_loss, 
+            "disc_loss": disc_loss
+        }
+
+        return loss
+
+    def generator_loss(self, y_hat): 
+        # loss = -torch.log(y_hat) 
+        return F.binary_cross_entropy(y_hat, torch.ones_like(y_hat))
     
-    def discriminator_loss(self, y, y_hat, reduction="mean"):
-        loss = (torch.log(y) + torch.log(y_hat))
-        if reduction == "mean":
-            return -loss.mean() 
-        else:
-            return -loss.sum() 
+    def discriminator_loss(self, y, y_hat):
+        # loss = (torch.log(y) + torch.log(1 - y_hat))
+        return F.binary_cross_entropy(y, torch.ones_like(y)) + F.binary_cross_entropy(y_hat, torch.zeros_like(y_hat))
 
     def configure_optimizers(self):
         optimizer1 = optim.Adam(self.generator.parameters(), lr=self.hparams.generator_lr, betas=(self.hparams.beta1, 0.999))
         optimizer2 = optim.Adam(self.discriminator.parameters(), lr=self.hparams.discriminator_lr, betas=(self.hparams.beta1, 0.999))
         return optimizer1, optimizer2
 
+    def _sample_z(self, batch_size, dim):
+        return torch.randn(batch_size, dim, device=self.device)
+
     @staticmethod
     def add_model_specific_args(parent_parser):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
+        parser.add_argument("--z_dim", type=int, default=100)
         parser.add_argument('--z_filter_shape', type=int, default=4)
         parser.add_argument('--n_channels', type=int, default=3)
         parser.add_argument('--generator_lr', type=float, default=2e-4)
