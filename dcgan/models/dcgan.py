@@ -129,7 +129,7 @@ class DCGAN(pl.LightningModule):
     ```
     """
 
-    def __init__(self, z_dim: int=100, z_filter_shape: int=4, n_channels: int=3, learning_rate: float=2e-4, beta1: float=0.5) -> None:
+    def __init__(self, z_dim: int=100, z_filter_shape: int=2, n_channels: int=3, learning_rate: float=2e-4, beta1: float=0.5) -> None:
         super(DCGAN, self).__init__()
         self.save_hyperparameters()
         self.generator = Generator(self.hparams.z_dim, self.hparams.z_filter_shape, self.hparams.n_channels)
@@ -221,7 +221,7 @@ class DCGAN(pl.LightningModule):
     def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
         parser.add_argument("--z_dim", type=int, default=100)
-        parser.add_argument('--z_filter_shape', type=int, default=4)
+        parser.add_argument('--z_filter_shape', type=int, default=2)
         parser.add_argument('--n_channels', type=int, default=3)
         parser.add_argument('--learning_rate', type=float, default=2e-4)
         parser.add_argument('--beta1', type=float, default=0.5)
