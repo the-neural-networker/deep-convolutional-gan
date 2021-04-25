@@ -1,7 +1,7 @@
 import os 
 import sys 
 sys.path.append(os.path.abspath(os.path.pardir))
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 import matplotlib.pyplot as plt
 
 import torch
@@ -12,7 +12,7 @@ from dcgan.datasets.mnist import MNISTDataModule
 
 from dcgan.models.dcgan import DCGAN
 
-def main():
+def main() -> None:
     args = get_args() 
 
     if args.dataset == "CIFAR10":
@@ -26,8 +26,7 @@ def main():
         z_dim=args.z_dim,
         z_filter_shape=args.z_filter_shape,
         n_channels=args.n_channels,
-        generator_lr=args.generator_lr,
-        discriminator_lr=args.discriminator_lr,
+        learning_rate=args.learning_rate,
         beta1=args.beta1
     )  
 
@@ -38,7 +37,16 @@ def main():
 
     show_batch(dm, model, args.z_dim)
 
-def show_batch(dm, model, z_dim):
+def show_batch(dm: pl.LightningDataModule, model: pl.LightningModule, z_dim: int) -> None:
+    """
+    Plots and saves a batch of generated images from the generator of the trained DCGAN.
+
+    Args:
+        dm (pl.LightningDataModule): The data module used for training the DCGAN. 
+        model (pl.LightningModule): The DCGAN model.
+        z_dim (int): The size of noise vector used during DCGAN training.
+
+    """
     figure = plt.figure(figsize=(8, 8))
     cols, rows = 10, 10
     z = torch.randn(100, z_dim, device=model.device)
@@ -54,13 +62,26 @@ def show_batch(dm, model, z_dim):
         else:
             plt.imshow(image)
 
+    if not os.path.exists(f"../results/{dm}/"):
+        os.makedirs(f"./results/{dm}/")
+
     figure.savefig(f"../results/{dm}/result.png")
     plt.show()
 
-def denormalize(image):
-    return (image - image.min()) / (image.max() - image.min())
+def denormalize(image: torch.Tensor) -> torch.Tensor:
+    """
+    Denormalizes image back to 0-255 range and converts the image to the torch.uint8 dtype.
 
-def get_args():
+    Args: 
+        image (torch.Tensor): Input image.
+
+    Returns:
+        image (torch.Tensor): The denormalized (0-255) image.
+    """
+    image = (image - image.min()) / (image.max() - image.min()) * 255
+    return image.to(torch.uint8)
+
+def get_args() -> Namespace:
     parser = ArgumentParser() 
     parser.add_argument("--dataset", default="CIFAR10", type=str) 
     parser.add_argument("--data_dir", default="./datasets/", type=str)
@@ -74,4 +95,3 @@ def get_args():
 
 if __name__ == "__main__":
     main()
-
