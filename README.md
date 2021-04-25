@@ -33,8 +33,11 @@ python train.py --gpus=1 --max_epochs=5 --dataset=MNIST --image_size=32 --batch_
 <div align="center">
 
 DCGAN trained for 10 epochs on MNIST. 
+
 ![result1](misc/result_mnist.png)
+
 DCGAN trained for 50 epochs on CIFAR10.
+
 ![result2](misc/result_cifar10.png)
 
 </div>
