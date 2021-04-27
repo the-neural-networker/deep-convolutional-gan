@@ -8,7 +8,7 @@
 Pytorch implementation of the deep convolutional GAN paper titled "Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks" using PyTorch. Link to the original paper by [Radford, A., Metz, L. and Chintala, S](./papers/dc-gans.pdf). You can also find the vanilla GAN paper by [Goodfellow, I. et al.](./papers/gans.pdf) for training details.
 
 
-![DCGAN Generator](./misc/dcgan_generator.png "DCGAN Generator (image taken from original paper by [Radford, A., Metz, L. and Chintala, S](./papers/dc-gans.pdf))")
+![DCGAN Generator](./misc/dcgan_generator.png "DCGAN Generator (image taken from original paper by Radford, A., Metz, L. and Chintala, S)")
 
 ## How to run   
 First, install dependencies (a new python virtual environment is recommended).   
