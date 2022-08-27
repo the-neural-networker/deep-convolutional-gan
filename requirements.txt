@@ -1,5 +1,5 @@
 torch == 1.7.0 
 torchvision == 0.8.1 
 pytorch-lightning == 1.2.9 
-numpy == 1.19.5 
+numpy == 1.22.0 
 matplotlib == 3.3.4
